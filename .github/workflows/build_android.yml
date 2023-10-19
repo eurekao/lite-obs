@@ -12,7 +12,7 @@ env:
 
 jobs:
   build_android:
-    runs-on: ubuntu-20.04
+    runs-on: windows-latest
     env:
       TARGET_OS: android
     strategy:
@@ -53,7 +53,7 @@ jobs:
       env:
         ARCH: arm64_v8a
       working-directory: lite-obs
-      run: cmake -DCMAKE_SYSTEM_PROCESSOR=${{ env.ARCH }} -DCMAKE_SYSTEM_NAME=Android -DCMAKE_SYSTEM_VERSION="6.0" -GNinja  -Bbuild/${{ env.TARGET_OS }}-${{ env.ARCH }} -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DCMAKE_INSTALL_PREFIX=liteobs-sdk-${{ env.ARCH }} -DCMAKE_VERBOSE_MAKEFILE=1 .
+      run: cmake -DCMAKE_SYSTEM_PROCESSOR=${{ env.ARCH }} -DCMAKE_SYSTEM_VERSION="6.0" -GNinja  -Bbuild/${{ env.TARGET_OS }}-${{ env.ARCH }} -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DCMAKE_INSTALL_PREFIX=liteobs-sdk-${{ env.ARCH }} -DCMAKE_VERBOSE_MAKEFILE=1 .
     - name: Build for arm64_v8a
       working-directory: lite-obs
       run: cmake --build build/${{ env.TARGET_OS }}-arm64_v8a

@@ -24,7 +24,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3
       with:
-        repository: Luweijia1989/lite-obs
+        repository: eurekao/lite-obs
         path: lite-obs
         ref: main
         fetch-depth: 1

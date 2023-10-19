@@ -1,0 +1,59 @@
+name: Build
+# 7z => cmake -E tar xvf/cvf --format=7zip
+on:
+  workflow_dispatch:
+
+env:
+  FF_VER: master
+  LLVM_VER: 14.0.7
+  NINJA_STATUS: '[%f/%t %e %r]'
+  SF_PW: ${{ secrets.SF_PW }}
+  SF_USER: ${{ secrets.SF_USER }}
+
+jobs:
+  build_android:
+    runs-on: windows-latest
+    env:
+      TARGET_OS: android
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [MinSizeRel]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Checkout source
+      uses: actions/checkout@v3
+      with:
+        repository: eurekao/lite-obs
+        path: lite-obs
+        ref: main
+        fetch-depth: 1
+        submodules: 'recursive'
+    - name: 'Restore External Dep cache'
+      id: external-dep-cache
+      uses: actions/cache@v3
+      with:
+        path: ./lite-obs/external
+        key: external-dep-${{ env.TARGET_OS }}-ffmpeg-${{ env.FF_VER }}
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.2.4'
+        target: 'android'
+        arch: 'android_arm64_v8a'
+    - name: Create Build Environment
+      shell: bash
+      env:
+        SYSROOT_CACHE_HIT: true
+        EXTERNAL_DEP_CACHE_HIT: ${{ steps.external-dep-cache.outputs.cache-hit }}
+      working-directory: lite-obs
+      run: ../ci-before-build.sh
+    - uses: seanmiddleditch/gha-setup-ninja@master
+    - name: Configure for arm64_v8a
+      env:
+        ARCH: arm64_v8a
+      working-directory: lite-obs
+      run: cmake -DCMAKE_SYSTEM_PROCESSOR=${{ env.ARCH }} -DCMAKE_SYSTEM_VERSION="6.0" -GNinja  -Bbuild/${{ env.TARGET_OS }}-${{ env.ARCH }} -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DCMAKE_INSTALL_PREFIX=liteobs-sdk-${{ env.ARCH }} -DCMAKE_VERBOSE_MAKEFILE=1 .
+    - name: Build for arm64_v8a
+      working-directory: lite-obs
+      run: cmake --build build/${{ env.TARGET_OS }}-arm64_v8a

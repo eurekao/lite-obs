@@ -109,7 +109,7 @@ endif()
 add_library(${PROJECT_NAME} SHARED ${PROJECT_FILES})
 
 ##################################################    Depends     ##################################################
-if(CMAKE_SYSTEM_NAME STREQUAL Android)
+if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL Android)
     include(${PROJECT_SOURCE_DIR}/cmake/platform/android.cmake)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Windows)
     include(${PROJECT_SOURCE_DIR}/cmake/platform/windows.cmake)

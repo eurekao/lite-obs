@@ -1,4 +1,4 @@
-name: Build
+name: BuildAndroid
 # 7z => cmake -E tar xvf/cvf --format=7zip
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ env:
 
 jobs:
   build_android:
-    runs-on: windows-latest
+    runs-on: ubuntu-20.04
     env:
       TARGET_OS: android
     strategy:
@@ -35,12 +35,6 @@ jobs:
       with:
         path: ./lite-obs/external
         key: external-dep-${{ env.TARGET_OS }}-ffmpeg-${{ env.FF_VER }}
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v3
-      with:
-        version: '6.2.4'
-        target: 'android'
-        arch: 'android_arm64_v8a'
     - name: Create Build Environment
       shell: bash
       env:
@@ -48,7 +42,13 @@ jobs:
         EXTERNAL_DEP_CACHE_HIT: ${{ steps.external-dep-cache.outputs.cache-hit }}
       working-directory: lite-obs
       run: ../ci-before-build.sh
-    - uses: seanmiddleditch/gha-setup-ninja@master
+    - uses: seanmiddleditch/gha-setup-ninja@master    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.2.4'
+        target: 'android'
+        arch: 'android_arm64_v8a'
     - name: Configure for arm64_v8a
       env:
         ARCH: arm64_v8a

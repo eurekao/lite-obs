@@ -5,7 +5,7 @@ on:
 
 env:
   FF_VER: master
-  LLVM_VER: ${{ vars.LLVM_VER }}
+  LLVM_VER: '14.0.7'
   NINJA_STATUS: '[%f/%t %e %r]'
   SF_PW: ${{ secrets.SF_PW }}
   SF_USER: ${{ secrets.SF_USER }}
@@ -48,6 +48,8 @@ jobs:
         arch: x64
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.2.4'
     - name: Configure for win x64
       env:
         ARCH: x64

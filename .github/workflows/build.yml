@@ -28,7 +28,6 @@ jobs:
         path: lite-obs
         ref: main
         fetch-depth: 1
-        token: ${{ secrets.CLONE_PAT }}
         submodules: 'recursive'
     - name: 'Restore External Dep cache'
       id: external-dep-cache

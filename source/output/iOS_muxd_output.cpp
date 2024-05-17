@@ -115,16 +115,17 @@ void iOS_muxd_output::i_encoded_packet(std::shared_ptr<encoder_packet> packet)
         if (d_ptr->fd < 0)
             return;
 
-        auto tsSize = sizeof(int64_t);
-        auto size = tsSize + len;
-        if (d_ptr->buffer.size() < size)
+        // buf struct 8 bytes len + 8 byte timestamp + payload
+        auto total = sizeof(int64_t) * 2 + len;
+        if (d_ptr->buffer.size() < total)
         {
-            d_ptr->buffer.resize(size);
+            d_ptr->buffer.resize(total);
         }
 
-        memcpy(d_ptr->buffer.data(), &pts, tsSize);
-        memcpy(d_ptr->buffer.data() + tsSize, data, len);
-        auto ret = write(d_ptr->fd, d_ptr->buffer.data(), size);
+        memcpy(d_ptr->buffer.data(), &total, sizeof(int64_t));
+        memcpy(d_ptr->buffer.data() + sizeof(int64_t), &pts, sizeof(int64_t));
+        memcpy(d_ptr->buffer.data() + sizeof(int64_t) * 2, data, len);
+        auto ret = write(d_ptr->fd, d_ptr->buffer.data(), total);
         if (ret < 0) {
             lite_obs_output_signal_stop(LITE_OBS_OUTPUT_DISCONNECTED);
             d_ptr->fd = -1;

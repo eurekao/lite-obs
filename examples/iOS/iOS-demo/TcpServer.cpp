@@ -198,5 +198,6 @@ void TcpServer::closeClientSocket()
     if (m_clientSocket != -1) {
         close(m_clientSocket);
         m_clientSocket = -1;
+        m_callback.disconnected(m_callback.userdata);
     }
 }

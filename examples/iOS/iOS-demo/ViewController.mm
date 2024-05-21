@@ -44,7 +44,7 @@
     CGContextRelease(imageContext);
     CGColorSpaceRelease(genericRGBColorspace);
     
-    source->output_video3(source, srcPixel, imageWidth, imageHeight);
+    source->output_video3(source, srcPixel, imageWidth, imageHeight, false);
     free(srcPixel);
     
     self.view.backgroundColor = UIColor.whiteColor;

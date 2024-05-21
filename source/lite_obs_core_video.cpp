@@ -233,6 +233,8 @@ std::shared_ptr<gs_texture> lite_obs_core_video::render_output_texture()
     glm::vec2 base_i = {1.0f / (float)d_ptr->base_width, 1.0f / (float)d_ptr->base_height};
     program->gs_effect_set_param("base_dimension_i", base_i);
 
+    if (program->gs_program_name() == "Default_Draw")
+        program->gs_effect_set_param("_bgra_mat", texture->gs_texture_convert_mat());
     program->gs_effect_set_texture("image", texture);
 
     graphics_subsystem::draw_sprite(program, texture, target, 0, width, height, false, nullptr);

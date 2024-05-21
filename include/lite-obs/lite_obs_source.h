@@ -170,7 +170,7 @@ public:
                                   video_colorspace color_space, uint32_t width,
                                   uint32_t height);
     void lite_source_output_video(int texture_id, uint32_t texture_width, uint32_t texture_height);
-    void lite_source_output_video(const uint8_t *img_data, uint32_t img_width, uint32_t img_height);
+    void lite_source_output_video(const uint8_t *img_data, uint32_t img_width, uint32_t img_height, bool is_bgra);
     void lite_source_clear_video();
 
     void lite_source_set_pos(float x, float y);

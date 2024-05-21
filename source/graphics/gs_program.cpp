@@ -167,6 +167,17 @@ void gs_program::gs_effect_set_param(const char *name, const glm::vec2 &value)
     p->param->changed = true;
 }
 
+void gs_program::gs_effect_set_param(const char *name, const glm::mat4x4 &value)
+{
+    auto p = gs_effect_get_param_by_name(name);
+    if (!p)
+        return;
+
+    p->param->cur_value.resize(sizeof(glm::mat4x4));
+    memcpy(p->param->cur_value.data(), &value, sizeof(glm::mat4x4));
+    p->param->changed = true;
+}
+
 void gs_program::gs_effect_set_param(const char *name, const void *value, size_t size)
 {
     auto p = gs_effect_get_param_by_name(name);

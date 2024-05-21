@@ -1101,7 +1101,7 @@ void lite_obs_source::lite_source_output_video(int texture_id, uint32_t texture_
     d_ptr->sync_texture = gs_texture_create_with_external(texture_id, texture_width, texture_height);
 }
 
-void lite_obs_source::lite_source_output_video(const uint8_t *img_data, uint32_t img_width, uint32_t img_height)
+void lite_obs_source::lite_source_output_video(const uint8_t *img_data, uint32_t img_width, uint32_t img_height, bool is_bgra)
 {
     std::lock_guard<std::mutex> locker(d_ptr->sync_mutex);
 
@@ -1117,6 +1117,7 @@ void lite_obs_source::lite_source_output_video(const uint8_t *img_data, uint32_t
 
     graphics_subsystem::make_current(d_ptr->core_video.lock()->graphics());
     d_ptr->sync_texture = gs_texture_create(img_width, img_height, gs_color_format::GS_RGBA, GS_DYNAMIC);
+    d_ptr->sync_texture->gs_texture_set_convert_mat(!is_bgra);
     d_ptr->sync_texture->gs_texture_set_image(img_data, img_width * 4, false);
     graphics_subsystem::done_current();
 }
@@ -1573,6 +1574,7 @@ bool lite_obs_source::render_crop_texture(const std::shared_ptr<gs_texture> &tex
     if(!program)
         return false;
 
+    program->gs_effect_set_param("_bgra_mat", texture->gs_texture_convert_mat());
     program->gs_effect_set_texture("image", texture);
     graphics_subsystem::draw_sprite(program, texture, d_ptr->crop_cache_texture, 0, 0, 0, false, [cx, cy, &texture](glm::mat4x4 &mat){
         auto width = texture->gs_texture_get_width();
@@ -1725,6 +1727,7 @@ void lite_obs_source::render_texture(std::shared_ptr<gs_texture> texture)
     if( !program)
         return;
 
+    program->gs_effect_set_param("_bgra_mat", texture->gs_texture_convert_mat());
     program->gs_effect_set_texture("image", texture);
 
     uint32_t flag = 0;

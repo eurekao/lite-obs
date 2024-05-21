@@ -40,6 +40,7 @@ struct gs_texture_private
     bool gen_mipmaps{};
     GLuint unpack_buffer{};
     GLsizeiptr size{};
+    glm::mat4x4 tex_convert_mat{1.};
 
     bool external_texture{};
 };
@@ -316,6 +317,22 @@ fail:
         success = false;
 
     return success;
+}
+
+glm::mat4x4 gs_texture::gs_texture_convert_mat()
+{
+    return d_ptr->tex_convert_mat;
+}
+
+void gs_texture::gs_texture_set_convert_mat(bool revert)
+{
+    float mat[16] = {
+        revert ? 1.f : 0.f, 0.f, revert ? 0.f : 1.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        revert ? 0.f : 1.f, 0.f, revert ? 1.f : 0.f, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    };
+    memcpy(glm::value_ptr(d_ptr->tex_convert_mat), mat, sizeof(mat));
 }
 
 bool gs_texture::allocate_texture_mem()

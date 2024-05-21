@@ -2,6 +2,7 @@
 
 #include "gs_subsystem_info.h"
 #include "gl_helpers.h"
+#include <glm/mat4x4.hpp>
 #include <memory>
 
 class gs_texture;
@@ -49,6 +50,8 @@ public:
     bool gs_texture_load_texture_sampler(std::shared_ptr<gs_sampler_state> ss);
 
     bool gs_texture_copy(const std::shared_ptr<gs_texture> &src);
+    glm::mat4x4 gs_texture_convert_mat();
+    void gs_texture_set_convert_mat(bool revert);
 
 private:
     bool create_pixel_unpack_buffer();

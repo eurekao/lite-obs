@@ -57,9 +57,9 @@ void lite_obs_media_source_internal::output_video(const uint8_t *video_data[MAX_
     d_ptr->internal_source->lite_source_output_video(video_data, line_size, format, range, color_space, width, height);
 }
 
-void lite_obs_media_source_internal::output_video(const uint8_t *img_data, uint32_t img_width, uint32_t img_height)
+void lite_obs_media_source_internal::output_video(const uint8_t *img_data, uint32_t img_width, uint32_t img_height, bool is_bgra)
 {
-    d_ptr->internal_source->lite_source_output_video(img_data, img_width, img_height);
+    d_ptr->internal_source->lite_source_output_video(img_data, img_width, img_height, is_bgra);
 }
 
 void lite_obs_media_source_internal::clear_video()

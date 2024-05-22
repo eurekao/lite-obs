@@ -180,6 +180,14 @@ bool lite_obs_encoder::lite_obs_encoder_reset_encoder_impl(encoder_id id)
 
     add_connection();
 
+    d_ptr->outputs_mutex.lock();
+    for (auto iter = d_ptr->outputs.begin(); iter != d_ptr->outputs.end(); iter++) {
+        auto output = (*iter).lock();
+        if (output)
+            output->i_encoder_changed();
+    }
+    d_ptr->outputs_mutex.unlock();
+
     return true;
 }
 

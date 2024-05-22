@@ -26,6 +26,7 @@ public:
     virtual uint64_t i_get_total_bytes() override;
     virtual int i_get_dropped_frames() override;
     virtual std::string i_cdn_ip() override;
+    virtual void i_encoder_changed() override;
 
     static void start_thread(void *data);
     static void write_thread(void *data);

@@ -23,6 +23,7 @@ public:
     virtual void i_encoded_packet(std::shared_ptr<encoder_packet> packet) override;
     virtual uint64_t i_get_total_bytes() override;
     virtual int i_get_dropped_frames() override;
+    virtual void i_encoder_changed() override;
 
 private:
     bool send_meta_data();

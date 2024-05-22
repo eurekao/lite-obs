@@ -195,3 +195,8 @@ int aoa_output::i_get_dropped_frames()
 {
     return 0;
 }
+
+void aoa_output::i_encoder_changed()
+{
+    d_ptr->sent_header = false;
+}

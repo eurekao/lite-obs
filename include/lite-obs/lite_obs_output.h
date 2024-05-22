@@ -43,6 +43,7 @@ public:
     virtual uint64_t i_get_total_bytes() = 0;
     virtual int i_get_dropped_frames() = 0;
     virtual std::string i_cdn_ip() { return std::string(); }
+    virtual void i_encoder_changed() {}
 
     void set_output_signal_callback(lite_obs_output_callbak callback);
     const lite_obs_output_callbak &output_signal_callback();

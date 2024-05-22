@@ -1131,6 +1131,11 @@ int rtmp_stream_output::i_get_dropped_frames()
     return d_ptr->dropped_frames;
 }
 
+void rtmp_stream_output::i_encoder_changed()
+{
+    d_ptr->sent_headers = false;
+}
+
 
 void rtmp_stream_output::free_packets()
 {

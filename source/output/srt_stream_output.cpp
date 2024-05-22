@@ -1081,6 +1081,11 @@ std::string mpeg_ts_output::i_cdn_ip()
     return d_ptr->cdn_ip;
 }
 
+void mpeg_ts_output::i_encoder_changed()
+{
+    d_ptr->got_headers = false;
+}
+
 void mpeg_ts_output::ffmpeg_mpegts_deactivate()
 {
     if (d_ptr->write_thread_active) {

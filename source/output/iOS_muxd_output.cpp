@@ -3,7 +3,11 @@
 
 
 #include <thread>
+#if TARGET_PLATFORM == PLATFORM_WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 #include "lite-obs/lite_encoder.h"
 
 struct iOS_muxd_output_private
@@ -116,7 +120,7 @@ void iOS_muxd_output::i_encoded_packet(std::shared_ptr<encoder_packet> packet)
             return;
 
         // buf struct 8 bytes len + 8 byte timestamp + payload
-        auto total = sizeof(int64_t) * 2 + len;
+        unsigned int total = sizeof(int64_t) * 2 + static_cast<unsigned int>(len);
         if (d_ptr->buffer.size() < total)
         {
             d_ptr->buffer.resize(total);
@@ -125,7 +129,11 @@ void iOS_muxd_output::i_encoded_packet(std::shared_ptr<encoder_packet> packet)
         memcpy(d_ptr->buffer.data(), &total, sizeof(int64_t));
         memcpy(d_ptr->buffer.data() + sizeof(int64_t), &pts, sizeof(int64_t));
         memcpy(d_ptr->buffer.data() + sizeof(int64_t) * 2, data, len);
+#if TARGET_PLATFORM == PLATFORM_WIN32
+        auto ret = _write(d_ptr->fd, d_ptr->buffer.data(), total);
+#else
         auto ret = write(d_ptr->fd, d_ptr->buffer.data(), total);
+#endif
         if (ret < 0) {
             lite_obs_output_signal_stop(LITE_OBS_OUTPUT_DISCONNECTED);
             d_ptr->fd = -1;
@@ -157,4 +165,9 @@ uint64_t iOS_muxd_output::i_get_total_bytes()
 int iOS_muxd_output::i_get_dropped_frames()
 {
     return 0;
+}
+
+void iOS_muxd_output::i_encoder_changed()
+{
+    d_ptr->sent_header = false;
 }

@@ -319,7 +319,6 @@ struct lite_source_private
 
     /* sync video data */
     std::shared_ptr<gs_texture> sync_texture{};
-    std::mutex sync_mutex{};
 
     glm::vec2 pos{0};
     glm::vec2 scale{1};
@@ -1091,20 +1090,19 @@ void lite_obs_source::lite_source_output_video(int texture_id, uint32_t texture_
         blog(LOG_INFO, "texture share not support due to unsupport opengl context");
         return;
     }
-    std::lock_guard<std::mutex> locker(d_ptr->sync_mutex);
 
     if (d_ptr->type & source_type::SOURCE_ASYNC) {
         blog(LOG_ERROR, "async video not support texture input");
         return;
     }
 
+    graphics_subsystem::make_current(core_video->graphics());
     d_ptr->sync_texture = gs_texture_create_with_external(texture_id, texture_width, texture_height);
+    graphics_subsystem::done_current();
 }
 
 void lite_obs_source::lite_source_output_video(const uint8_t *img_data, uint32_t img_width, uint32_t img_height, bool is_bgra)
 {
-    std::lock_guard<std::mutex> locker(d_ptr->sync_mutex);
-
     if (d_ptr->type & source_type::SOURCE_ASYNC) {
         return;
     }
@@ -1115,9 +1113,11 @@ void lite_obs_source::lite_source_output_video(const uint8_t *img_data, uint32_t
         return;
     }
 
-    graphics_subsystem::make_current(d_ptr->core_video.lock()->graphics());
-    d_ptr->sync_texture = gs_texture_create(img_width, img_height, gs_color_format::GS_RGBA, GS_DYNAMIC);
-    d_ptr->sync_texture->gs_texture_set_convert_mat(!is_bgra);
+    graphics_subsystem::make_current(c_v->graphics());
+    if (!d_ptr->sync_texture) {
+        d_ptr->sync_texture = gs_texture_create(img_width, img_height, gs_color_format::GS_RGBA, GS_DYNAMIC);
+        d_ptr->sync_texture->gs_texture_set_convert_mat(!is_bgra);
+    }
     d_ptr->sync_texture->gs_texture_set_image(img_data, img_width * 4, false);
     graphics_subsystem::done_current();
 }
@@ -1127,8 +1127,9 @@ void lite_obs_source::lite_source_clear_video()
     if (d_ptr->type & source_type::SOURCE_ASYNC)
         output_video_internal(NULL);
     else {
-        std::lock_guard<std::mutex> locker(d_ptr->sync_mutex);
+        graphics_subsystem::make_current(d_ptr->core_video.lock()->graphics());
         d_ptr->sync_texture.reset();
+        graphics_subsystem::done_current();
     }
 }
 
@@ -1756,7 +1757,6 @@ void lite_obs_source::render()
     if (d_ptr->type & source_type::SOURCE_ASYNC)
         async_render();
     else {
-        std::lock_guard<std::mutex> locker(d_ptr->sync_mutex);
         render_texture(d_ptr->sync_texture);
     }
 }

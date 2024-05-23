@@ -178,8 +178,6 @@ bool lite_obs_encoder::lite_obs_encoder_reset_encoder_impl(encoder_id id)
         d_ptr->encoder_impl = ec;
     }
 
-    add_connection();
-
     d_ptr->outputs_mutex.lock();
     for (auto iter = d_ptr->outputs.begin(); iter != d_ptr->outputs.end(); iter++) {
         auto output = (*iter).lock();
@@ -187,6 +185,8 @@ bool lite_obs_encoder::lite_obs_encoder_reset_encoder_impl(encoder_id id)
             output->i_encoder_changed();
     }
     d_ptr->outputs_mutex.unlock();
+
+    add_connection();
 
     return true;
 }

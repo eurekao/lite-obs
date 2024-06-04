@@ -1097,7 +1097,7 @@ void lite_obs_source::lite_source_output_video(int texture_id, uint32_t texture_
     }
 
     graphics_subsystem::make_current(core_video->graphics());
-    if (d_ptr->sync_texture && d_ptr->sync_texture->gs_texture_get_obj() == texture_id)
+    if (d_ptr->sync_texture && d_ptr->sync_texture->gs_texture_get_obj() != texture_id)
         d_ptr->sync_texture = gs_texture_create_with_external(texture_id, texture_width, texture_height);
     graphics_subsystem::done_current();
 }

@@ -111,6 +111,11 @@ uint32_t gs_texture::gs_texture_get_height()
     return d_ptr->height;
 }
 
+int gs_texture::gs_texture_get_obj()
+{
+    return d_ptr->base.texture;
+}
+
 gs_color_format gs_texture::gs_texture_get_color_format()
 {
     return d_ptr->base.format;

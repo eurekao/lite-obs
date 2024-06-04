@@ -32,6 +32,7 @@ public:
 
     uint32_t gs_texture_get_width();
     uint32_t gs_texture_get_height();
+    int gs_texture_get_obj();
 
     gs_color_format gs_texture_get_color_format();
 

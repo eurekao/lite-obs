@@ -7,9 +7,8 @@ public class LiteOBSSource {
         this.obsPtr = obsPtr;
         sourcePtr = createSource(obsPtr, type);
     }
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
+
+    public void release() {
         deleteSource(obsPtr, sourcePtr);
     }
 

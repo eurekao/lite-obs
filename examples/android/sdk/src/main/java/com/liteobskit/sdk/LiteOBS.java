@@ -13,11 +13,10 @@ public class LiteOBS {
     public long getApiPtr() {
         return apiPtr;
     }
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
+    public void release() {
         deleteLiteOBS(apiPtr);
     }
+
     public void resetVideoAudio(int width, int height, int fps) {
         resetVideoAudio(apiPtr, width, height, fps);
     }

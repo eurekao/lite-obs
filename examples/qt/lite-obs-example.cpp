@@ -135,7 +135,7 @@ void LiteObsExample::doStartOutput()
 
     //    auto path = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
     //    path = path + "/output.flv";
-    QString path = "rtmp://192.168.16.28/live/test";
+    QString path = "rtmp://192.168.16.22/live/test";
     m_liteObs->lite_obs_start_output(m_liteObs, output_type::rtmp, (void *)path.toStdString().c_str(), 4000, 160, cb);
 //    m_liteObs->lite_obs_start_output(m_liteObs, output_type::android_aoa, nullptr, 4000, 160, cb);
 }
@@ -151,6 +151,7 @@ void LiteObsExample::doTextureMix(int id, uint32_t width, uint32_t height)
     if(!m_testSource)
         m_testSource = lite_obs_media_source_new(m_liteObs, source_type::SOURCE_VIDEO);
 
+    m_testSource->output_video(m_testSource, id, width, height);
     m_testSource->output_video(m_testSource, id, width, height);
 //    m_testSource->set_scale(m_testSource, 0.2f, 0.2f);
 //    m_testSource->set_pos(m_testSource, 200, 200);
@@ -179,7 +180,7 @@ void LiteObsExample::doImgMix(bool enabled)
 
         QImage img(":/resource/test.png");
         img = img.convertedTo(QImage::Format_RGBA8888);
-        m_pngSource->output_video3(m_pngSource, img.constBits(), img.width(), img.height());
+        m_pngSource->output_video3(m_pngSource, img.constBits(), img.width(), img.height(), false);
     }
 }
 

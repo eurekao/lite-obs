@@ -86,7 +86,8 @@ public class MainActivity extends AppCompatActivity implements Camera2FrameCallb
             @Override
             public void onClick(View v) {
                 //mPhoneCamera.startStream("rtmp://192.168.16.28/live/test");
-                mAOAStreamer.startStream();
+                //mAOAStreamer.startStream();
+                mAOAStreamer.startStream("rtmp://192.168.16.22/live/test");
             }
         });
 

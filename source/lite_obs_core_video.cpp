@@ -884,6 +884,11 @@ bool lite_obs_core_video::lite_obs_video_active()
     return d_ptr->raw_active > 0 || d_ptr->gpu_encoder_active > 0;
 }
 
+bool lite_obs_core_video::lite_obs_video_ready()
+{
+    return d_ptr->graphics != nullptr;
+}
+
 void lite_obs_core_video::lite_obs_stop_video()
 {
     if (d_ptr->video) {

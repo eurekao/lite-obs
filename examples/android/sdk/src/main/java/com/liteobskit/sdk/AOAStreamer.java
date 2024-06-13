@@ -54,6 +54,8 @@ public class AOAStreamer {
     }
 
     public void destroy() {
+        mVideoSource.release();
+        liteOBS.release();
         mVideoSource = null;
         liteOBS = null;
     }
@@ -218,6 +220,11 @@ public class AOAStreamer {
 
         liteOBS.startStream(this);
         doLog("startStream: AOA stream start");
+    }
+
+    public void startStream(String url) {
+        liteOBS.startStream(url);
+        doLog("startStream: rtmp stream start");
     }
 
     public void stopStream() {

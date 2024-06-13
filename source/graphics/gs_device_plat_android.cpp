@@ -83,9 +83,15 @@ void *gs_context_gl::gl_platform_create(void *)
     if (ctx) {
         EGLint contextVersion = 0;
         eglQueryContext(display, ctx, EGL_CONTEXT_CLIENT_VERSION, &contextVersion);
-        if (contextVersion >= 3)
+        if (contextVersion >= 3) {
             if((context = eglCreateContext(display, config, ctx, contextAttribs)))
                 set_texture_share_enabled(true);
+            else {
+                EGLint e = eglGetError();
+                blog(LOG_DEBUG, "create shared context error, code: %d", (int)e);
+            }
+        } else
+            blog(LOG_DEBUG, "unsupport shared opengl context, version: %d", (int)contextVersion);
     }
 
     if (!context) {
@@ -101,7 +107,7 @@ void *gs_context_gl::gl_platform_create(void *)
         return nullptr;
     }
 
-    blog(LOG_DEBUG, "egl create opengles context success");
+    blog(LOG_DEBUG, gs_device_rc_texture_share_enabled() ? "egl create shared opengles context success" : "egl create opengles context success");
 
     auto plat = std::make_unique<gl_platform>();
     plat->context = context;

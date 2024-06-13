@@ -40,6 +40,7 @@ public:
     int lite_obs_start_video(uint32_t width, uint32_t height, uint32_t fps);
 
     bool lite_obs_video_active();
+    bool lite_obs_video_ready();
     void lite_obs_stop_video();
 
     std::shared_ptr<video_output> core_video();

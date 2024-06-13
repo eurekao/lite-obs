@@ -10,6 +10,7 @@
 #include "lite-obs/output/rtmp_stream_output.h"
 #include "lite-obs/output/iOS_muxd_output.h"
 #include "lite-obs/util/threading.h"
+#include "lite-obs/util/log.h"
 #include "lite-obs/lite_obs_platform_config.h"
 
 #include <set>
@@ -231,6 +232,11 @@ bool lite_obs_internal::obs_reset_audio(uint32_t sample_rate)
 
 bool lite_obs_internal::lite_obs_start_output(output_type type, void *output_info, int vb, int ab, const lite_obs_output_callbak &callback)
 {
+    if (!d_ptr->video->lite_obs_video_ready()) {
+        blog(LOG_ERROR, "video inactive, start fail");
+        return false;
+    }
+
     if (!d_ptr->output)
     {
         std::shared_ptr<lite_obs_output> output = nullptr;

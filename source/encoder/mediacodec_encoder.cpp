@@ -155,6 +155,7 @@ struct mediacodec_encoder_private
     int fps_num{};
     int fps_den{};
     bool initialized = false;
+    bool encode_texture = false;
     std::vector<uint8_t> sei;
     std::vector<uint8_t> header;
     std::shared_ptr<std::vector<uint8_t>> buffer;
@@ -230,11 +231,10 @@ bool mediacodec_encoder::init_mediacodec()
     AMediaFormat_setInt32(format, "bitrate-mode", 2); //CBR
 #endif
 
-#if __ANDROID_API__ >= 26
-    AMediaFormat_setInt32(format, "color-format", 0x7F000789);
-#else
-    AMediaFormat_setInt32(format, "color-format", 21);
-#endif
+    if (d_ptr->encode_texture)
+        AMediaFormat_setInt32(format, "color-format", 0x7F000789);
+    else
+        AMediaFormat_setInt32(format, "color-format", 21);
 
     blog(LOG_INFO, "AMediaCodec_configure format : %s", AMediaFormat_toString(format));
     auto rc = AMediaCodec_configure(d_ptr->mediacodec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
@@ -245,9 +245,9 @@ bool mediacodec_encoder::init_mediacodec()
     AMediaFormat_delete(format);
     blog(LOG_INFO, "CodecEncoder AMediaCodec_configure %d ", rc);
 
-#if __ANDROID_API__ >= 26
-    rc = AMediaCodec_createInputSurface(d_ptr->mediacodec, &d_ptr->rc->mediacodec_input_window);
-#endif
+    if (d_ptr->encode_texture)
+        rc = AMediaCodec_createInputSurface(d_ptr->mediacodec, &d_ptr->rc->mediacodec_input_window);
+
 
     if(AMEDIA_OK == rc) {
         rc = AMediaCodec_start(d_ptr->mediacodec);
@@ -282,12 +282,12 @@ bool mediacodec_encoder::i_create()
             success = false;
             break;
         }
-#if __ANDROID_API__ >= 26
-        if (!d_ptr->rc->init()) {
-            success = false;
-            break;
+        if (d_ptr->encode_texture) {
+            if (!d_ptr->rc->init()) {
+                success = false;
+                break;
+            }
         }
-#endif
 
     } while(0);
 
@@ -300,9 +300,8 @@ bool mediacodec_encoder::i_create()
 
 void mediacodec_encoder::i_destroy()
 {
-#if __ANDROID_API__ >= 26
-    d_ptr->rc->reset();
-#endif
+    if (d_ptr->encode_texture)
+        d_ptr->rc->reset();
 
     if (d_ptr->mediacodec) {
         AMediaCodec_flush(d_ptr->mediacodec);
@@ -323,26 +322,26 @@ bool mediacodec_encoder::i_encoder_valid()
 #define TIMEOUT_USEC 8000
 bool mediacodec_encoder::i_encode(encoder_frame *frame, std::shared_ptr<encoder_packet> packet, std::function<void (std::shared_ptr<encoder_packet>)> send_off)
 {
-#if __ANDROID_API__ >= 26
-    if (!d_ptr->rc->prepare_encode_texture(frame, d_ptr->width, d_ptr->height, d_ptr->fps_den, d_ptr->fps_num))
-        return false;
-#else
-    while (true) {
-        // nv12
-        ssize_t idx = AMediaCodec_dequeueInputBuffer(d_ptr->mediacodec, TIMEOUT_USEC);
-        if(idx>=0) {
-            size_t buf_size = 0;
-            auto pts = frame->pts * d_ptr->fps_den * 1000000 / d_ptr->fps_num;
-            uint8_t *buf = AMediaCodec_getInputBuffer(d_ptr->mediacodec, idx, &buf_size);
-            int copy_index = 0;
-            memcpy(buf + copy_index, frame->data[0], frame->linesize[0] * d_ptr->height);
-            copy_index += frame->linesize[0] * d_ptr->height;
-            memcpy(buf + copy_index, frame->data[1], frame->linesize[1] * d_ptr->height / 2);
-            AMediaCodec_queueInputBuffer(d_ptr->mediacodec, idx, 0, d_ptr->width * d_ptr->height * 3 / 2, pts, 0);
-            break;
+    if (d_ptr->encode_texture) {
+        if (!d_ptr->rc->prepare_encode_texture(frame, d_ptr->width, d_ptr->height, d_ptr->fps_den, d_ptr->fps_num))
+            return false;
+    } else {
+        while (true) {
+            // nv12
+            ssize_t idx = AMediaCodec_dequeueInputBuffer(d_ptr->mediacodec, TIMEOUT_USEC);
+            if(idx>=0) {
+                size_t buf_size = 0;
+                auto pts = frame->pts * d_ptr->fps_den * 1000000 / d_ptr->fps_num;
+                uint8_t *buf = AMediaCodec_getInputBuffer(d_ptr->mediacodec, idx, &buf_size);
+                int copy_index = 0;
+                memcpy(buf + copy_index, frame->data[0], frame->linesize[0] * d_ptr->height);
+                copy_index += frame->linesize[0] * d_ptr->height;
+                memcpy(buf + copy_index, frame->data[1], frame->linesize[1] * d_ptr->height / 2);
+                AMediaCodec_queueInputBuffer(d_ptr->mediacodec, idx, 0, d_ptr->width * d_ptr->height * 3 / 2, pts, 0);
+                break;
+            }
         }
     }
-#endif
 
     try {
         while (true) {
@@ -429,11 +428,10 @@ bool mediacodec_encoder::i_get_sei_data(uint8_t **sei_data, size_t *size)
 
 bool mediacodec_encoder::i_gpu_encode_available()
 {
-#if __ANDROID_API__ >= 26
-    return true;
-#else
-    return false;
-#endif
+    if (d_ptr->encode_texture)
+        return true;
+    else
+        return false;
 }
 
 void mediacodec_encoder::i_update_encode_bitrate(int bitrate)

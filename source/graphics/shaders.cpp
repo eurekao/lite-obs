@@ -2548,6 +2548,7 @@ Default_Draw
 const bool obs_glsl_compile = true;
 
 uniform sampler2D image;
+uniform mat4x4 _bgra_mat;
 
 in vec2 _vertex_shader_attrib0;
 
@@ -2574,11 +2575,13 @@ void main(void)
     vert_in.pos = gl_FragCoord;
     vert_in.uv = _vertex_shader_attrib0;
 
-    _pixel_shader_attrib0 = _main_wrap(vert_in);
+    _pixel_shader_attrib0 = _bgra_mat * _main_wrap(vert_in);
 }
 
 ---------------------------------------
 texture2d image null 3 0 0
++++++++++++++++++++++++++++++++++++++++
+float4x4 _bgra_mat null 3 0 18446744073709551615
 ---------------------------------------
 ---------------------------------------
 def_sampler

@@ -9,8 +9,9 @@ class mpeg_ts_output : public lite_obs_output
 {
 public:
     mpeg_ts_output();
+    virtual ~mpeg_ts_output();
 
-    virtual void i_set_output_info(const std::string &info) override;
+    virtual void i_set_output_info(void *info) override;
     virtual bool i_output_valid() override;
     virtual bool i_has_video() override;
     virtual bool i_has_audio() override;
@@ -25,6 +26,7 @@ public:
     virtual uint64_t i_get_total_bytes() override;
     virtual int i_get_dropped_frames() override;
     virtual std::string i_cdn_ip() override;
+    virtual void i_encoder_changed() override;
 
     static void start_thread(void *data);
     static void write_thread(void *data);

@@ -9,7 +9,7 @@ public:
     rtmp_stream_output();
     virtual ~rtmp_stream_output();
 
-    virtual void i_set_output_info(const std::string &info) override;
+    virtual void i_set_output_info(void *info) override;
     virtual bool i_output_valid() override;
     virtual bool i_has_video() override;
     virtual bool i_has_audio() override;
@@ -23,6 +23,7 @@ public:
     virtual void i_encoded_packet(std::shared_ptr<encoder_packet> packet) override;
     virtual uint64_t i_get_total_bytes() override;
     virtual int i_get_dropped_frames() override;
+    virtual void i_encoder_changed() override;
 
 private:
     bool send_meta_data();

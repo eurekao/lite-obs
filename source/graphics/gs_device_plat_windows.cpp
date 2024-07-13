@@ -1,4 +1,5 @@
-#include "lite-obs/graphics/gs_device.h"
+#include "lite-obs/graphics/gs_context_gl.h"
+#include "lite-obs/graphics/gs_subsystem_info.h"
 #include "lite-obs/util/log.h"
 
 #if TARGET_PLATFORM == PLATFORM_WIN32
@@ -67,7 +68,7 @@ static bool register_dummy_class(void)
     return true;
 }
 
-void *gs_device::gs_create_platform_rc()
+void *gs_context_gl::gs_create_platform_rc()
 {
     if (!register_dummy_class())
         return nullptr;
@@ -107,7 +108,7 @@ void *gs_device::gs_create_platform_rc()
     return plat;
 }
 
-void gs_device::gs_destroy_platform_rc(void *plat)
+void gs_context_gl::gs_destroy_platform_rc(void *plat)
 {
     if (!plat)
         return;
@@ -121,7 +122,7 @@ void gs_device::gs_destroy_platform_rc(void *plat)
     }
 }
 
-void gs_device::device_enter_context_internal(void *param)
+void gs_context_gl::device_enter_context_internal(void *param)
 {
     gl_platform *plat = (gl_platform *)param;
     HDC hdc = plat->window.hdc;
@@ -130,7 +131,7 @@ void gs_device::device_enter_context_internal(void *param)
     }
 }
 
-void gs_device::device_leave_context_internal(void *param)
+void gs_context_gl::device_leave_context_internal(void *param)
 {
     if (!wglMakeCurrent(NULL, NULL))
         blog(LOG_DEBUG, "device_leave_context (GL) failed");
@@ -159,7 +160,6 @@ struct gs_init_data {
     uint32_t cx{}, cy{};
     uint32_t num_backbuffers{};
     gs_color_format format{};
-    gs_zstencil_format zsformat{};
     uint32_t adapter{};
 };
 
@@ -316,34 +316,10 @@ static inline int get_color_format_bits(gs_color_format format)
     }
 }
 
-static inline int get_depth_format_bits(gs_zstencil_format zsformat)
-{
-    switch (zsformat) {
-    case gs_zstencil_format::GS_Z16:
-        return 16;
-    case gs_zstencil_format::GS_Z24_S8:
-        return 24;
-    default:
-        return 0;
-    }
-}
-
-static inline int get_stencil_format_bits(gs_zstencil_format zsformat)
-{
-    switch (zsformat) {
-    case gs_zstencil_format::GS_Z24_S8:
-        return 8;
-    default:
-        return 0;
-    }
-}
-
 /* Creates the real pixel format for the target window */
 static int gl_choose_pixel_format(HDC hdc, const gs_init_data *info)
 {
     int color_bits = get_color_format_bits(info->format);
-    int depth_bits = get_depth_format_bits(info->zsformat);
-    int stencil_bits = get_stencil_format_bits(info->zsformat);
     UINT num_formats;
     BOOL success;
     int format;
@@ -361,8 +337,8 @@ static int gl_choose_pixel_format(HDC hdc, const gs_init_data *info)
         WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
         WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
         WGL_COLOR_BITS_ARB, color_bits,
-        WGL_DEPTH_BITS_ARB, depth_bits,
-        WGL_STENCIL_BITS_ARB, stencil_bits,
+        WGL_DEPTH_BITS_ARB, 0,
+        WGL_STENCIL_BITS_ARB, 0,
         0, 0,
     };
 
@@ -410,7 +386,7 @@ static bool init_default_swap(gl_platform *plat, int pixel_format, PIXELFORMATDE
     return true;
 }
 
-void *gs_device::gl_platform_create(void *plat_info)
+void *gs_context_gl::gl_platform_create(void *plat_info)
 {
     auto ctx = wglGetCurrentContext();
     auto dc = wglGetCurrentDC();
@@ -420,7 +396,6 @@ void *gs_device::gl_platform_create(void *plat_info)
     auto dummy = std::make_unique<dummy_context>();
     gs_init_data info;
     info.format = gs_color_format::GS_RGBA;
-    info.zsformat = gs_zstencil_format::GS_ZS_NONE;
     int pixel_format;
     PIXELFORMATDESCRIPTOR pfd;
 
@@ -463,13 +438,13 @@ void *gs_device::gl_platform_create(void *plat_info)
     return plat.release();
 }
 
-void gs_device::gl_platform_destroy(void *plat)
+void gs_context_gl::gl_platform_destroy(void *plat)
 {
     gl_platform *p = (gl_platform *)plat;
     delete p;
 }
 
-void *gs_device::get_device_context_internal(void *param)
+void *gs_context_gl::get_device_context_internal(void *param)
 {
     gl_platform *plat = (gl_platform *)param;
     return plat->hrc;

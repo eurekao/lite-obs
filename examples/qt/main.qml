@@ -20,7 +20,7 @@ Item {
             Translate { id: txIn; x: renderer.width / 2; y: renderer.height / 2 }
         ]
 
-        onNewTexture: {
+        onNewTexture: function(texId, texWidth, texHeight) {
             example.doTextureMix(texId, texWidth, texHeight)
         }
     }
@@ -47,6 +47,44 @@ Item {
     }
 
     ColumnLayout {
+        anchors.right: parent.right
+        Button {
+            text: "move"
+            onClicked: {
+                example.move()
+            }
+        }
+
+        Button {
+            text: "scale"
+            onClicked: {
+                example.scale()
+            }
+        }
+
+        Button {
+            text: "flip"
+            onClicked: {
+                example.flip()
+            }
+        }
+
+        Button {
+            text: "rotate"
+            onClicked: {
+                example.rotate()
+            }
+        }
+
+        Button {
+            text: "reset"
+            onClicked: {
+                example.reset();
+            }
+        }
+    }
+
+    ColumnLayout {
         Button {
             text: "mix audio"
             checkable: true
@@ -60,6 +98,14 @@ Item {
             checkable: true
             onClicked: {
                 example.doVideoFrameMixTest(checked)
+            }
+        }
+
+        Button {
+            text: "mix img"
+            checkable: true
+            onClicked: {
+                example.doImgMix(checked)
             }
         }
 
@@ -106,16 +152,16 @@ Item {
         }
 
         Button {
-            text: "x264"
+            text: "soft"
             onClicked: {
-                example.resetEncoderType(3)
+                example.resetEncoderType(true)
             }
         }
 
         Button {
-            text: "ffmpeg"
+            text: "hw"
             onClicked: {
-                example.resetEncoderType(2)
+                example.resetEncoderType(false)
             }
         }
     }

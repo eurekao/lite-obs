@@ -5,11 +5,11 @@
 #include <mutex>
 #include <map>
 #include <list>
-#include "lite_obs.h"
+#include "lite_obs_internal.h"
 #include "media-io/video_frame.h"
 #include "media-io/video_info.h"
+#include <glm/glm.hpp>
 
-class gs_texture_render;
 class gs_texture;
 class lite_obs_core_video;
 class lite_obs_core_audio;
@@ -170,11 +170,16 @@ public:
                                   video_colorspace color_space, uint32_t width,
                                   uint32_t height);
     void lite_source_output_video(int texture_id, uint32_t texture_width, uint32_t texture_height);
+    void lite_source_output_video(const uint8_t *img_data, uint32_t img_width, uint32_t img_height, bool is_bgra);
     void lite_source_clear_video();
 
     void lite_source_set_pos(float x, float y);
     void lite_source_set_scale(float width_scale, float height_scale);
+    void lite_source_set_rotate(float rot);
+    // use this function to render source in a specific box will ignore the set_pos and set_scale settings
     void lite_source_set_render_box(int x, int y, int width, int height, source_aspect_ratio_mode mode);
+    void lite_source_set_flip(bool flip_h, bool flip_v);
+    void lite_source_reset_transform();
 
 public:
     static std::recursive_mutex sources_mutex;
@@ -232,15 +237,17 @@ private:
     bool set_async_texture_size(const std::shared_ptr<lite_obs_source_video_frame> &frame);
     void async_tick(uint64_t sys_time);
     std::shared_ptr<lite_obs_source_video_frame> get_frame();
-    bool update_async_texrender(const std::shared_ptr<lite_obs_source_video_frame> &frame, const std::vector<std::shared_ptr<gs_texture>> &tex, const std::shared_ptr<gs_texture_render> &texrender);
-    bool update_async_textures(const std::shared_ptr<lite_obs_source_video_frame> &frame, const std::vector<std::shared_ptr<gs_texture>> &tex, const std::shared_ptr<gs_texture_render> &texrender);
+    bool update_async_texrender(const std::shared_ptr<lite_obs_source_video_frame> &frame, const std::vector<std::shared_ptr<gs_texture>> &tex, std::shared_ptr<gs_texture> &out);
+    bool update_async_textures(const std::shared_ptr<lite_obs_source_video_frame> &frame, const std::vector<std::shared_ptr<gs_texture>> &tex, std::shared_ptr<gs_texture> &out);
     void update_async_video(uint64_t sys_time);
     bool render_crop_texture(const std::shared_ptr<gs_texture> &texture);
     void async_render();
     void render_texture(std::shared_ptr<gs_texture> texture);
     void render();
 
-    void do_update_transform(const std::shared_ptr<gs_texture> &tex);
+    glm::vec3 top_left();
+    void set_item_top_left(glm::vec3 tl);
+    void update_draw_transform(const std::shared_ptr<gs_texture> &texture);
 
 private:
     std::unique_ptr<lite_source_private> d_ptr{};

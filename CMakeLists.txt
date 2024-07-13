@@ -75,7 +75,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
 ##################################################    Options     ##################################################
-option(BUILD_EXAMPLES "Build examples." ON)
+option(BUILD_EXAMPLES "Build examples." OFF)
 
 ##################################################    Sources     ##################################################
 unset(PROJECT_SOURCES CACHE)
@@ -85,15 +85,13 @@ list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^${CMAKE_CURRENT_SOURCE_DIR}/source/t
 file(GLOB_RECURSE PROJECT_CMAKE_UTILS cmake/*.cmake)
 file(GLOB_RECURSE PROJECT_MISC *.bat *.gitignore *.md *.py *.sh *.txt)
 
-set (PROJECT_EXPORT_HPP include/${PROJECT_NAME}/lite_obs_export.hpp)
 set (PROJECT_FILES
     ${PROJECT_HEADERS}
     ${PROJECT_SOURCES}
     ${PROJECT_PLATFORM_HEADERS}
     ${PROJECT_PLATFORM_SOURCES}
     ${PROJECT_CMAKE_UTILS}
-    ${PROJECT_MISC}
-    ${PROJECT_EXPORT_HPP})
+    ${PROJECT_MISC})
 
 include            (assign_source_group)
 assign_source_group(${PROJECT_FILES})
@@ -107,6 +105,7 @@ if(ANDROID OR APPLE)
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${PROJECT_FILES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DBUILD_LITE_OBS_LIB)
 
 ##################################################    Depends     ##################################################
 if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL Android)
@@ -150,42 +149,66 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_INCLUDE_DIRS})
 target_link_libraries     (${PROJECT_NAME} PUBLIC ${PROJECT_LIBRARIES} liteobs-compiler-options glm)
 
 ##################################################    install     ##################################################
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set (CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/output/${TARGET_OS}"
+        CACHE PATH "default install path" FORCE)
+endif()
+
+if(ANDROID_ABI)
+    set(OUTPUT_ARCH ${ANDROID_ABI})
+elseif(CMAKE_ANDROID_ARCH_ABI)
+    set(OUTPUT_ARCH ${CMAKE_ANDROID_ARCH_ABI})
+elseif(CMAKE_C_COMPILER_ARCHITECTURE_ID) # msvc
+    set(OUTPUT_ARCH ${CMAKE_C_COMPILER_ARCHITECTURE_ID}) # ARMV7 ARM64 X86 x64
+elseif(WIN32)
+    set(OUTPUT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "[aA].*[rR].*64")
+        set(OUTPUT_ARCH arm64)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "[aA][rR][mM]")
+        set(OUTPUT_ARCH armhf)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "64")
+        set(OUTPUT_ARCH amd64)
+    endif()
+endif()
+string(TOLOWER "${OUTPUT_ARCH}" OUTPUT_ARCH)
+if(WIN32)
+    if(OUTPUT_ARCH MATCHES armv7) #msvc
+        set(OUTPUT_ARCH arm)
+    elseif(OUTPUT_ARCH MATCHES amd64) #msvc
+        set(OUTPUT_ARCH x64)
+    endif()
+endif()
+
 if (${TARGET_OS} STREQUAL iOS)
     install(TARGETS ${PROJECT_NAME}
         FRAMEWORK DESTINATION .)
 else()
     set(EXPORT_HEADERS
-        ${PROJECT_SOURCE_DIR}/include/lite-obs/lite_obs_defines.h
         ${PROJECT_SOURCE_DIR}/include/lite-obs/lite_obs.h
-        ${PROJECT_SOURCE_DIR}/include/lite-obs/lite_obs_export.hpp
+        ${PROJECT_SOURCE_DIR}/include/lite-obs/lite_obs_callback.h
+        ${PROJECT_SOURCE_DIR}/include/lite-obs/lite_obs_global.h
+        ${PROJECT_SOURCE_DIR}/include/lite-obs/lite_obs_defines.h
     )
 
     install(FILES ${EXPORT_HEADERS} DESTINATION include/lite-obs)
-    set(SDK_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR})
-    set(SDK_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR})
-    if (CMAKE_BUILD_TYPE MATCHES Debug)
-        set(SDK_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR}/debug)
-        set(SDK_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR}/debug)
-    endif()
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/lib/FindLiteOBS.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
+
+    set(SDK_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR}/${OUTPUT_ARCH})
+    set(SDK_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR}/${OUTPUT_ARCH})
 
     install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION ${SDK_INSTALL_BINDIR} # *.dll
         LIBRARY DESTINATION ${SDK_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${SDK_INSTALL_LIBDIR})
     if (FFmpeg_BIN_FILE)
-        install(FILES ${FFmpeg_BIN_FILE} DESTINATION ${SDK_INSTALL_BINDIR})
+        if(${TARGET_OS} STREQUAL android)
+            install(FILES ${FFmpeg_BIN_FILE} DESTINATION ${SDK_INSTALL_LIBDIR})
+        elseif(${TARGET_OS} STREQUAL windows-desktop)
+            install(FILES ${FFmpeg_BIN_FILE} DESTINATION ${SDK_INSTALL_BINDIR})
+        endif()
     endif()
 endif()
-
-
-##################################################    Postbuild   ##################################################
-include               (GenerateExportHeader)
-string                (TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPER)
-generate_export_header(${PROJECT_NAME} 
-    EXPORT_FILE_NAME     ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/lite_obs_export.hpp
-    EXPORT_MACRO_NAME    ${PROJECT_NAME_UPPER}_EXPORT
-    STATIC_DEFINE        ${PROJECT_NAME_UPPER}_STATIC
-)
 
 ##################################################    Examples    ##################################################
 if(BUILD_EXAMPLES)

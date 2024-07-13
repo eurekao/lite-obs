@@ -31,16 +31,10 @@
 
 #define GS_SUCCESS 0
 #define GS_ERROR_FAIL -1
-#define GS_ERROR_MODULE_NOT_FOUND -2
-#define GS_ERROR_NOT_SUPPORTED -3
 
-#define GS_BUILD_MIPMAPS (1 << 0)
-#define GS_DYNAMIC (1 << 1)
-#define GS_RENDER_TARGET (1 << 2)
-#define GS_GL_DUMMYTEX (1 << 3) /**<< texture with no allocated texture data */
-#define GS_DUP_BUFFER \
-    (1 << 4) /**<< do not pass buffer ownership when
-    *    creating a vertex/index buffer */
+#define GS_DYNAMIC (1 << 0)
+#define GS_RENDER_TARGET (1 << 1)
+
 
 #define GS_FLIP_U (1 << 0)
 #define GS_FLIP_V (1 << 1)
@@ -93,7 +87,6 @@ static inline GLenum convert_gs_blend_type(gs_blend_type type)
 
 enum class gs_color_format {
     GS_UNKNOWN,
-    GS_A8,
     GS_R8,
     GS_RGBA,
 
@@ -106,8 +99,6 @@ enum class gs_color_format {
 static inline uint32_t gs_get_format_bpp(gs_color_format format)
 {
     switch (format) {
-    case gs_color_format::GS_A8:
-        return 8;
     case gs_color_format::GS_R8:
         return 8;
     case gs_color_format::GS_RGBA:
@@ -128,8 +119,6 @@ static inline uint32_t gs_get_format_bpp(gs_color_format format)
 static inline GLenum convert_gs_format(gs_color_format format)
 {
     switch (format) {
-    case gs_color_format::GS_A8:
-        return GL_RED;
     case gs_color_format::GS_R8:
         return GL_RED;
     case gs_color_format::GS_RGBA:
@@ -150,8 +139,6 @@ static inline GLenum convert_gs_format(gs_color_format format)
 static inline GLenum convert_gs_internal_format(gs_color_format format)
 {
     switch (format) {
-    case gs_color_format::GS_A8:
-        return GL_R8; /* NOTE: use GL_TEXTURE_SWIZZLE_x */
     case gs_color_format::GS_R8:
         return GL_R8;
     case gs_color_format::GS_RGBA:
@@ -172,8 +159,6 @@ static inline GLenum convert_gs_internal_format(gs_color_format format)
 static inline GLenum get_gl_format_type(gs_color_format format)
 {
     switch (format) {
-    case gs_color_format::GS_A8:
-        return GL_UNSIGNED_BYTE;
     case gs_color_format::GS_R8:
         return GL_UNSIGNED_BYTE;
     case gs_color_format::GS_RGBA:
@@ -191,41 +176,9 @@ static inline GLenum get_gl_format_type(gs_color_format format)
     return GL_UNSIGNED_BYTE;
 }
 
-enum class gs_zstencil_format {
-    GS_ZS_NONE,
-    GS_Z16,
-    GS_Z24_S8,
-    GS_Z32F,
-    GS_Z32F_S8X24,
-};
-
-static inline GLenum convert_zstencil_format(gs_zstencil_format format)
-{
-    switch (format) {
-    case gs_zstencil_format::GS_Z16:
-        return GL_DEPTH_COMPONENT16;
-    case gs_zstencil_format::GS_Z24_S8:
-        return GL_DEPTH24_STENCIL8;
-    case gs_zstencil_format::GS_Z32F:
-        return GL_DEPTH_COMPONENT32F;
-    case gs_zstencil_format::GS_Z32F_S8X24:
-        return GL_DEPTH32F_STENCIL8;
-    case gs_zstencil_format::GS_ZS_NONE:
-        return 0;
-    }
-
-    return 0;
-}
-
 #define GS_CLEAR_COLOR (1 << 0)
 #define GS_CLEAR_DEPTH (1 << 1)
 #define GS_CLEAR_STENCIL (1 << 2)
-
-enum class gs_cull_mode {
-    GS_BACK,
-    GS_FRONT,
-    GS_NEITHER,
-};
 
 enum class gs_draw_mode {
     GS_POINTS,
@@ -267,4 +220,8 @@ struct gs_rect {
     int y;
     int cx;
     int cy;
+
+    bool is_null() {
+        return x == 0 && y == 0 && cx == 0 && cy == 0;
+    }
 };

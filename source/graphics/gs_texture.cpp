@@ -12,28 +12,6 @@ bool fbo_info::attach_rendertarget(std::shared_ptr<gs_texture> tex) {
     return gl_success("glFramebufferTexture2D");
 }
 
-bool fbo_info::attach_zstencil(std::shared_ptr<gs_zstencil_buffer> zs)
-{
-    GLuint zsbuffer = 0;
-    GLenum zs_attachment = GL_DEPTH_STENCIL_ATTACHMENT;
-
-    if (cur_zstencil_buffer.lock() == zs)
-        return true;
-
-    cur_zstencil_buffer = zs;
-
-    if (zs) {
-        zsbuffer = zs->buffer;
-        zs_attachment = zs->attachment;
-    }
-
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, zs_attachment, GL_RENDERBUFFER, zsbuffer);
-    if (!gl_success("glFramebufferRenderbuffer"))
-        return false;
-
-    return true;
-}
-
 fbo_info::~fbo_info() {
     glDeleteFramebuffers(1, &fbo);
     gl_success("glDeleteFramebuffers");
@@ -62,6 +40,7 @@ struct gs_texture_private
     bool gen_mipmaps{};
     GLuint unpack_buffer{};
     GLsizeiptr size{};
+    glm::mat4x4 tex_convert_mat{1.};
 
     bool external_texture{};
 };
@@ -130,6 +109,11 @@ uint32_t gs_texture::gs_texture_get_width()
 uint32_t gs_texture::gs_texture_get_height()
 {
     return d_ptr->height;
+}
+
+int gs_texture::gs_texture_get_obj()
+{
+    return d_ptr->base.texture;
 }
 
 gs_color_format gs_texture::gs_texture_get_color_format()
@@ -258,7 +242,6 @@ std::shared_ptr<fbo_info> gs_texture::get_fbo()
     d_ptr->base.fbo->height = height;
     d_ptr->base.fbo->format = d_ptr->base.format;
     d_ptr->base.fbo->cur_render_target.reset();
-    d_ptr->base.fbo->cur_zstencil_buffer.reset();
 
     return d_ptr->base.fbo;
 }
@@ -297,13 +280,6 @@ bool gs_texture::gs_texture_load_texture_sampler(std::shared_ptr<gs_sampler_stat
         success = false;
     if (!gl_tex_param_i(d_ptr->base.gl_target, GL_TEXTURE_WRAP_R, ss->address_w))
         success = false;
-
-    if (d_ptr->base.format == gs_color_format::GS_A8) {
-        gl_tex_param_i(d_ptr->base.gl_target, GL_TEXTURE_SWIZZLE_R, GL_ONE);
-        gl_tex_param_i(d_ptr->base.gl_target, GL_TEXTURE_SWIZZLE_G, GL_ONE);
-        gl_tex_param_i(d_ptr->base.gl_target, GL_TEXTURE_SWIZZLE_B, GL_ONE);
-        gl_tex_param_i(d_ptr->base.gl_target, GL_TEXTURE_SWIZZLE_A, GL_RED);
-    }
 
     return success;
 }
@@ -346,6 +322,22 @@ fail:
         success = false;
 
     return success;
+}
+
+glm::mat4x4 gs_texture::gs_texture_convert_mat()
+{
+    return d_ptr->tex_convert_mat;
+}
+
+void gs_texture::gs_texture_set_convert_mat(bool revert)
+{
+    float mat[16] = {
+        revert ? 1.f : 0.f, 0.f, revert ? 0.f : 1.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        revert ? 0.f : 1.f, 0.f, revert ? 1.f : 0.f, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    };
+    memcpy(glm::value_ptr(d_ptr->tex_convert_mat), mat, sizeof(mat));
 }
 
 bool gs_texture::allocate_texture_mem()
@@ -405,9 +397,6 @@ bool gs_texture::create_pixel_unpack_buffer()
 
 std::shared_ptr<gs_texture> gs_texture_create(uint32_t width, uint32_t height, gs_color_format color_format, uint32_t flags)
 {
-    if (!gs_valid("gs_texture_create"))
-        return NULL;
-
     auto tex = std::make_shared<gs_texture>();
     if (!tex->create(width, height, color_format, flags)) {
         blog(LOG_DEBUG, "Cannot create texture, width: %d, height:%d, format: %d", width, height, (int)color_format);

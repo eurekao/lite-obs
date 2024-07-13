@@ -4,27 +4,12 @@
 #include <QFile>
 #include <QRandomGenerator>
 #include <QThread>
-
-class output_callback : public lite_obs_output_callbak
-{
-public:
-    virtual ~output_callback(){}
-    virtual void start(){qDebug() << "===start";}
-    virtual void stop(int code, std::string msg){qDebug() << "===stop";}
-    virtual void starting(){qDebug() << "===starting";}
-    virtual void stopping(){qDebug() << "===stopping";}
-    virtual void activate(){qDebug() << "===activate";}
-    virtual void deactivate(){qDebug() << "===deactivate";}
-    virtual void reconnect(){qDebug() << "===reconnect";}
-    virtual void reconnect_success(){qDebug() << "===reconnect_success";}
-    virtual void connected() {qDebug() << "===connected";}
-    virtual void first_media_packet() {qDebug() << "===first_media_packet";}
-};
+#include <QImage>
 
 LiteObsExample::LiteObsExample(QObject *parent)
     : QObject(parent)
-    , m_liteObs(std::make_shared<lite_obs>())
 {
+    m_liteObs = lite_obs_api_new();
     qDebug() << "main thread id: " << QThread::currentThreadId();
 }
 
@@ -37,12 +22,18 @@ LiteObsExample::~LiteObsExample()
     videoTestRunning = false;
     if (m_videoTestThread.joinable())
         m_videoTestThread.join();
+
+    if(m_testSource)
+        lite_obs_media_source_delete(m_liteObs, &m_testSource);
+
+    lite_obs_media_source_delete(m_liteObs, &m_pngSource);
+    lite_obs_api_delete(&m_liteObs);
 }
 
 void LiteObsExample::resetLiteObs(int width, int height, int fps)
 {
-    m_liteObs->obs_reset_video(width, height, fps);
-    m_liteObs->obs_reset_audio(48000);
+    m_liteObs->lite_obs_reset_video(m_liteObs, width, height, fps);
+    m_liteObs->lite_obs_reset_audio(m_liteObs, 48000);
 }
 
 void LiteObsExample::doAudioMixTest(bool start)
@@ -50,7 +41,7 @@ void LiteObsExample::doAudioMixTest(bool start)
     if (start) {
         audioTestRunning = true;
         m_audioTestThread = std::thread([=](){
-            auto source = m_liteObs->lite_obs_create_source(source_type::SOURCE_AUDIO);
+            auto source = lite_obs_media_source_new(m_liteObs, source_type::SOURCE_AUDIO);
 
             QFile audiofile(":/resource/44100_2_float.pcm");
             audiofile.open(QFile::ReadOnly);
@@ -63,7 +54,7 @@ void LiteObsExample::doAudioMixTest(bool start)
 
                 const uint8_t *data[MAX_AV_PLANES] = {};
                 data[0] = (uint8_t *)alldata.data() + tt * (index++);
-                source->output_audio(data, 441 * 2, audio_format::AUDIO_FORMAT_FLOAT, speaker_layout::SPEAKERS_STEREO, 44100);
+                source->output_audio(source, data, 441 * 2, audio_format::AUDIO_FORMAT_FLOAT, speaker_layout::SPEAKERS_STEREO, 44100);
 
                 QThread::msleep(QRandomGenerator::global()->bounded(17, 22));
                 if (!audioTestRunning) {
@@ -72,7 +63,7 @@ void LiteObsExample::doAudioMixTest(bool start)
                 }
             }
 
-            m_liteObs->lite_obs_destroy_source(source);
+            lite_obs_media_source_delete(m_liteObs, &source);
         });
     } else {
         audioTestRunning = false;
@@ -86,8 +77,8 @@ void LiteObsExample::doVideoFrameMixTest(bool start)
     if (start) {
         videoTestRunning = true;
         m_videoTestThread = std::thread([=](){
-            auto source = m_liteObs->lite_obs_create_source(source_type::SOURCE_ASYNCVIDEO);
-
+            auto source = lite_obs_media_source_new(m_liteObs, source_type::SOURCE_ASYNCVIDEO);
+            source->set_pos(source, 400, 400);
             QFile audiofile(":/resource/640360420p.yuv");
             audiofile.open(QFile::ReadOnly);
             auto alldata = audiofile.readAll();
@@ -108,7 +99,7 @@ void LiteObsExample::doVideoFrameMixTest(bool start)
                 linesize[1] = 320;
                 linesize[2] = 320;
 
-                source->output_video(data, linesize, video_format::VIDEO_FORMAT_I420, video_range_type::VIDEO_RANGE_FULL, video_colorspace::VIDEO_CS_709, 640, 360);
+                source->output_video2(source, data, linesize, VIDEO_FORMAT_I420, VIDEO_RANGE_FULL, VIDEO_CS_709, 640, 360);
 
                 QThread::msleep(50);
                 if (!videoTestRunning) {
@@ -117,8 +108,8 @@ void LiteObsExample::doVideoFrameMixTest(bool start)
                 }
             }
 
-            source->clear_video();
-            m_liteObs->lite_obs_destroy_source(source);
+            source->clear_video(source);
+            lite_obs_media_source_delete(m_liteObs, &source);
         });
     } else {
         videoTestRunning = false;
@@ -129,39 +120,110 @@ void LiteObsExample::doVideoFrameMixTest(bool start)
 
 void LiteObsExample::doStartOutput()
 {
-    auto callback = std::make_shared<output_callback>();
-//    auto path = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-//    path = path + "/output.flv";
-    QString path = "rtmp://192.168.16.28/live/test";
-    m_liteObs->lite_obs_start_output(path.toStdString(), 4000, 160, callback);
+    lite_obs_output_callbak cb{};
+    cb.start = [](void *){qDebug() << "===start";};
+    cb.stop = [](int code, const char *msg, void *){qDebug() << "===stop";};
+    cb.starting = [](void *){qDebug() << "===starting";};
+    cb.stopping = [](void *){qDebug() << "===stopping";};
+    cb.activate = [](void *){qDebug() << "===activate";};
+    cb.deactivate = [](void *){qDebug() << "===deactivate";};
+    cb.reconnect = [](void *){qDebug() << "===reconnect";};
+    cb.reconnect_success = [](void *){qDebug() << "===reconnect_success";};
+    cb.connected = [](void *){qDebug() << "===connected";};
+    cb.first_media_packet = [](void *){qDebug() << "===first_media_packet";};
+    cb.opaque = this;
+
+    //    auto path = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    //    path = path + "/output.flv";
+    QString path = "rtmp://192.168.16.22/live/test";
+    m_liteObs->lite_obs_start_output(m_liteObs, output_type::rtmp, (void *)path.toStdString().c_str(), 4000, 160, cb);
+//    m_liteObs->lite_obs_start_output(m_liteObs, output_type::android_aoa, nullptr, 4000, 160, cb);
 }
 
 void LiteObsExample::doStopOutput()
 {
-    m_liteObs->lite_obs_stop_output();
+    m_liteObs->lite_obs_stop_output(m_liteObs);
 }
 
-static lite_obs_media_source *source{};
 void LiteObsExample::doTextureMix(int id, uint32_t width, uint32_t height)
 {
     qDebug() << "texture mix: " << id << width <<height << QThread::currentThreadId();
+    if(!m_testSource)
+        m_testSource = lite_obs_media_source_new(m_liteObs, source_type::SOURCE_VIDEO);
 
-    if (!source)
-        source = m_liteObs->lite_obs_create_source(source_type::SOURCE_VIDEO);
-
-    source->output_video(id, width, height);
-//    source->set_scale(0.2f, 0.2f);
-//    source->set_pos(100, 100);
-    source->set_render_box(50, 100, 600, 600, source_aspect_ratio_mode::IGNORE_ASPECT_RATIO);
+    m_testSource->output_video(m_testSource, id, width, height);
+    m_testSource->output_video(m_testSource, id, width, height);
+//    m_testSource->set_scale(m_testSource, 0.2f, 0.2f);
+//    m_testSource->set_pos(m_testSource, 200, 200);
+//    m_testSource->set_render_box(m_testSource, 50, 100, 400, 600, source_aspect_ratio_mode::KEEP_ASPECT_RATIO_BY_EXPANDING);
 }
 
 void LiteObsExample::setSourceOrder(int order)
 {
-    if (source)
-        source->set_order((lite_obs_media_source::order_movement)order);
+    m_testSource->set_order(m_testSource, (order_movement)order);
 }
 
-void LiteObsExample::resetEncoderType(int type)
+void LiteObsExample::resetEncoderType(bool sw)
 {
-    m_liteObs->lite_obs_reset_encoder(type);
+    m_liteObs->lite_obs_reset_encoder(m_liteObs, sw);
+}
+
+void LiteObsExample::doImgMix(bool enabled)
+{
+    if(!enabled && m_pngSource) {
+        lite_obs_media_source_delete(m_liteObs, &m_pngSource);
+    } else {
+        if (!m_pngSource) {
+            m_pngSource = lite_obs_media_source_new(m_liteObs, source_type::SOURCE_VIDEO);
+            m_pngSource->set_rotate(m_pngSource, 90.f);
+        }
+
+        QImage img(":/resource/test.png");
+        img = img.convertedTo(QImage::Format_RGBA8888);
+        m_pngSource->output_video3(m_pngSource, img.constBits(), img.width(), img.height(), false);
+    }
+}
+
+void LiteObsExample::move()
+{
+    static int offset = 10;
+    if (!m_pngSource)
+        return;
+
+    m_pngSource->set_pos(m_pngSource, offset, offset);
+    offset += 10;
+}
+
+void LiteObsExample::scale()
+{
+    static float s = 1.0f;
+    if (!m_pngSource)
+        return;
+
+    m_pngSource->set_scale(m_pngSource, s, s);
+    s -= 0.1f;
+}
+
+void LiteObsExample::flip()
+{
+    if (!m_pngSource)
+        return;
+
+    m_pngSource->set_flip(m_pngSource, true, false);
+}
+
+void LiteObsExample::rotate()
+{
+    if (!m_pngSource)
+        return;
+
+    m_pngSource->set_rotate(m_pngSource, 90.f);
+}
+
+void LiteObsExample::reset()
+{
+    if (!m_pngSource)
+        return;
+
+    m_pngSource->reset_transform(m_pngSource);
 }

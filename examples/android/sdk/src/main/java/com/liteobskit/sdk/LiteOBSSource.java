@@ -1,0 +1,32 @@
+package com.liteobskit.sdk;
+public class LiteOBSSource {
+    private long sourcePtr;
+    private long obsPtr;
+
+    public LiteOBSSource(long obsPtr, int type) {
+        this.obsPtr = obsPtr;
+        sourcePtr = createSource(obsPtr, type);
+    }
+
+    public void release() {
+        deleteSource(obsPtr, sourcePtr);
+    }
+
+    public void outputVideo(byte[] data, int[] linesize, int width, int height) {
+        outputVideo(sourcePtr, data, linesize, width, height);
+    }
+
+    public void outputAudio(byte[] data, int frames) {
+        outputAudio(sourcePtr, data, frames);
+    }
+
+    public void rotate(float rot) {
+        rotate(sourcePtr, rot);
+    }
+
+    private native long createSource(long obsPtr, int type);
+    private native void deleteSource(long obsPtr, long sourcePtr);
+    private native void outputVideo(long sourcePtr, byte[] data, int[] linesize, int width, int height);
+    private native void outputAudio(long sourcePtr, byte[] data, int frames);
+    private native void rotate(long sourcePtr, float rot);
+}

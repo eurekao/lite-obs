@@ -3,8 +3,13 @@
 #include <memory>
 #include "lite_obs_defines.h"
 
+#define LITE_OBS_VIDEO_SUCCESS 0
+#define LITE_OBS_VIDEO_FAIL -1
+#define LITE_OBS_VIDEO_INVALID_PARAM -2
+#define LITE_OBS_VIDEO_CURRENTLY_ACTIVE -3
+
 struct lite_obs_core_video_private;
-struct obs_graphics_context;
+struct lite_obs_graphics_context;
 class gs_texture;
 class gs_program;
 class graphics_subsystem;
@@ -35,6 +40,7 @@ public:
     int lite_obs_start_video(uint32_t width, uint32_t height, uint32_t fps);
 
     bool lite_obs_video_active();
+    bool lite_obs_video_ready();
     void lite_obs_stop_video();
 
     std::shared_ptr<video_output> core_video();
@@ -66,18 +72,17 @@ private:
     std::shared_ptr<gs_program> get_scale_effect_internal();
     std::shared_ptr<gs_program> get_scale_effect(uint32_t width, uint32_t height);
     void stage_output_texture(const std::shared_ptr<gs_texture> &tex, int cur_texture);
-    void render_convert_plane(std::shared_ptr<gs_texture> target);
     void render_convert_texture(std::shared_ptr<gs_texture> texture);
     void render_all_sources();
     void render_main_texture();
     std::shared_ptr<gs_texture> render_output_texture();
-    void render_video(bool raw_active, const bool gpu_active, int cur_texture, int prev_texture);
+    void render_video(bool raw_active, const bool gpu_active, int cur_texture);
     bool download_frame(int prev_texture, struct video_data *frame);
     void set_gpu_converted_data_internal(bool using_nv12_tex, class video_frame *output, const struct video_data *input, video_format format, uint32_t width, uint32_t height);
     void set_gpu_converted_data(class video_frame *output, const struct video_data *input, const struct video_output_info *info);
     void output_video_data(video_data *input_frame, int count);
     void output_frame(bool raw_active, const bool gpu_active);
-    bool graphics_loop(obs_graphics_context *context);
+    bool graphics_loop(lite_obs_graphics_context *context);
     void graphics_thread_internal();
 
     bool init_gpu_encoding();

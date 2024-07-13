@@ -2,8 +2,10 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 #include <glm/vec4.hpp>
 #include <glm/vec2.hpp>
+#include <glm/mat4x4.hpp>
 #include "gs_subsystem_info.h"
 #include "gs_shader_info.h"
 
@@ -25,9 +27,10 @@ public:
     void gs_effect_set_param(const char *name, float value);
     void gs_effect_set_param(const char *name, const glm::vec4 &value);
     void gs_effect_set_param(const char *name, const glm::vec2 &value);
+    void gs_effect_set_param(const char *name, const glm::mat4x4 &value);
     void gs_effect_set_param(const char *name, const void *value, size_t size);
 
-    void gs_effect_upload_parameters(bool change_only);
+    void gs_effect_upload_parameters(bool change_only, std::function<void(std::weak_ptr<gs_texture>, int)> texture_update);
     void gs_effect_clear_tex_params();
     void gs_effect_clear_all_params();
 

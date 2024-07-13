@@ -1,4 +1,5 @@
-#include "lite-obs/graphics/gs_device.h"
+#include "lite-obs/graphics/gs_context_gl.h"
+#include "lite-obs/graphics/gs_subsystem_info.h"
 #include "lite-obs/util/log.h"
 
 #if TARGET_PLATFORM == PLATFORM_ANDROID
@@ -20,17 +21,17 @@ struct gl_platform
     }
 };
 
-void *gs_device::gs_create_platform_rc()
+void *gs_context_gl::gs_create_platform_rc()
 {
     return nullptr;
 }
 
-void gs_device::gs_destroy_platform_rc(void *plat)
+void gs_context_gl::gs_destroy_platform_rc(void *plat)
 {
     (void)plat;
 }
 
-void *gs_device::gl_platform_create(void *)
+void *gs_context_gl::gl_platform_create(void *)
 {
     const EGLint attribs[] = {
         EGL_RENDERABLE_TYPE,
@@ -82,9 +83,15 @@ void *gs_device::gl_platform_create(void *)
     if (ctx) {
         EGLint contextVersion = 0;
         eglQueryContext(display, ctx, EGL_CONTEXT_CLIENT_VERSION, &contextVersion);
-        if (contextVersion >= 3)
+        if (contextVersion >= 3) {
             if((context = eglCreateContext(display, config, ctx, contextAttribs)))
                 set_texture_share_enabled(true);
+            else {
+                EGLint e = eglGetError();
+                blog(LOG_DEBUG, "create shared context error, code: %d", (int)e);
+            }
+        } else
+            blog(LOG_DEBUG, "unsupport shared opengl context, version: %d", (int)contextVersion);
     }
 
     if (!context) {
@@ -100,7 +107,7 @@ void *gs_device::gl_platform_create(void *)
         return nullptr;
     }
 
-    blog(LOG_DEBUG, "egl create opengles context success");
+    blog(LOG_DEBUG, gs_device_rc_texture_share_enabled() ? "egl create shared opengles context success" : "egl create opengles context success");
 
     auto plat = std::make_unique<gl_platform>();
     plat->context = context;
@@ -128,7 +135,7 @@ gl_context_helper::~gl_context_helper()
     }
 }
 
-void gs_device::device_enter_context_internal(void *param)
+void gs_context_gl::device_enter_context_internal(void *param)
 {
     gl_platform *plat = (gl_platform *)param;
     if (!eglMakeCurrent(plat->display, plat->surface, plat->surface, plat->context)) {
@@ -136,19 +143,19 @@ void gs_device::device_enter_context_internal(void *param)
     }
 }
 
-void gs_device::device_leave_context_internal(void *param)
+void gs_context_gl::device_leave_context_internal(void *param)
 {
     gl_platform *plat = (gl_platform *)param;
     eglMakeCurrent(plat->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT );
 }
 
-void gs_device::gl_platform_destroy(void *plat)
+void gs_context_gl::gl_platform_destroy(void *plat)
 {
     gl_platform *p = (gl_platform *)plat;
     delete p;
 }
 
-void *gs_device::get_device_context_internal(void *param)
+void *gs_context_gl::get_device_context_internal(void *param)
 {
     gl_platform *plat = (gl_platform *)param;
     return plat->context;

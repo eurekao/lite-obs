@@ -3,14 +3,24 @@
 #include <memory>
 #include <string>
 #include "lite_encoder_info.h"
+#include "lite_obs_callback.h"
 
 class video_output;
 class audio_output;
 class lite_obs_core_video;
 class lite_obs_core_audio;
 class lite_obs_encoder;
-class lite_obs_output_callbak;
 struct lite_obs_output_private;
+
+#define LITE_OBS_OUTPUT_SUCCESS 0
+#define LITE_OBS_OUTPUT_BAD_PATH -1
+#define LITE_OBS_OUTPUT_CONNECT_FAILED -2
+#define LITE_OBS_OUTPUT_INVALID_STREAM -3
+#define LITE_OBS_OUTPUT_ERROR -4
+#define LITE_OBS_OUTPUT_DISCONNECTED -5
+#define LITE_OBS_OUTPUT_NO_SPACE -7
+#define LITE_OBS_OUTPUT_ENCODE_ERROR -8
+
 class lite_obs_output : public std::enable_shared_from_this<lite_obs_output>
 {
     friend class lite_obs_encoder;
@@ -18,7 +28,7 @@ public:
     lite_obs_output();
     ~lite_obs_output();
 
-    virtual void i_set_output_info(const std::string &info){ }
+    virtual void i_set_output_info(void *info){ }
     virtual bool i_output_valid() = 0;
     virtual bool i_has_video() = 0;
     virtual bool i_has_audio() = 0;
@@ -33,9 +43,10 @@ public:
     virtual uint64_t i_get_total_bytes() = 0;
     virtual int i_get_dropped_frames() = 0;
     virtual std::string i_cdn_ip() { return std::string(); }
+    virtual void i_encoder_changed() {}
 
-    void set_output_signal_callback(std::shared_ptr<lite_obs_output_callbak> sig);
-    std::shared_ptr<lite_obs_output_callbak> output_signal_callback();
+    void set_output_signal_callback(lite_obs_output_callbak callback);
+    const lite_obs_output_callbak &output_signal_callback();
 
     bool lite_obs_output_create(std::shared_ptr<lite_obs_core_video> c_v, std::shared_ptr<lite_obs_core_audio> c_a);
     void lite_obs_output_destroy();
